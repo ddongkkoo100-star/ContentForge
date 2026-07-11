@@ -1,0 +1,5 @@
+{
+  "server": { "port": 4444 },
+  "writer": { "engine": "mock", "timeoutMs": 300000, "maxRetries": 2 },
+  "image": { "engine": "mock", "baseUrl": "http://localhost:3333", "autoStart": true, "quality": "medium" }
+}

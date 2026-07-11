@@ -1,0 +1,21 @@
+{
+  "name": "contentforge",
+  "version": "0.1.0",
+  "description": "조사자료 기반 블로그/인스타 콘텐츠 자동 생성기 — 구독 CLI 글쓰기 + ima2-gen OAuth 이미지",
+  "type": "module",
+  "bin": {
+    "contentforge": "bin/contentforge.js"
+  },
+  "scripts": {
+    "start": "node bin/contentforge.js serve",
+    "doctor": "node bin/contentforge.js doctor",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
