@@ -37,6 +37,17 @@ export function registerStatusRoutes(app, ctx) {
       }
       ctx.settings.imageEngine = imageEngine;
     }
+    const { imageProvider } = req.body ?? {};
+    if (imageProvider) {
+      if (!["oauth", "api"].includes(imageProvider)) {
+        throw Object.assign(new Error("imageProvider는 oauth|api"), { status: 400 });
+      }
+      // 과금 방지 가드 — API Key 모드는 클라이언트가 확인 다이얼로그를 거쳐 confirm을 보내야 한다
+      if (imageProvider === "api" && req.body.confirmBilling !== true) {
+        throw Object.assign(new Error("API Key 모드는 과금됩니다 — confirmBilling: true 필요"), { status: 409 });
+      }
+      ctx.settings.imageProvider = imageProvider;
+    }
     res.json({ settings: ctx.settings });
   }));
 }

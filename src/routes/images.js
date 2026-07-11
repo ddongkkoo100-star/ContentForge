@@ -26,7 +26,8 @@ export function registerImageRoutes(app, ctx) {
       ctx.store.save(state);
       try {
         const size = sizeFor(state.mode, img.role);
-        const { buffers, meta } = await engine.generate({ prompt: img.prompt, size, n: 1 });
+        const provider = ctx.settings.imageProvider === "api" ? "api" : "auto";
+        const { buffers, meta } = await engine.generate({ prompt: img.prompt, size, n: 1, provider });
         const filename = imageFilename(img.id, img.role, index);
         writeFileSync(join(imagesDir, filename), buffers[0]);
         img.file = filename;

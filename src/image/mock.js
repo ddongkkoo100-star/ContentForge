@@ -31,10 +31,11 @@ function chunk(type, data) {
 export function makePlaceholderPng(width, height, seedText = "") {
   let hash = 5381;
   for (const ch of seedText) hash = ((hash << 5) + hash + ch.charCodeAt(0)) | 0;
-  // 다크 UI 위에서 보기 좋은 저채도 톤으로 제한
-  const r = 40 + (Math.abs(hash) % 80);
-  const g = 40 + (Math.abs(hash >> 8) % 80);
-  const b = 50 + (Math.abs(hash >> 16) % 90);
+  // 다크 UI 위에서 보기 좋은 저채도 톤 — 채널 간 차이를 작게 유지
+  const base = 52 + (Math.abs(hash) % 30);
+  const r = base + (Math.abs(hash >> 8) % 20);
+  const g = base + (Math.abs(hash >> 12) % 20);
+  const b = base + 10 + (Math.abs(hash >> 16) % 22);
 
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);

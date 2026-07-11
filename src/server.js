@@ -22,6 +22,8 @@ export function createApp(config, overrides = {}) {
   const settings = {
     writerEngine: config.writer.engine,
     imageEngine: config.image.engine,
+    // "oauth"(기본, 과금 없음) | "api"(과금 — UI 확인 다이얼로그 필수)
+    imageProvider: "oauth",
   };
   const ctx = {
     config,

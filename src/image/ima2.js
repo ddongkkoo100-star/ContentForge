@@ -81,12 +81,13 @@ export class Ima2ImageEngine {
    * POST /api/generate 프록시. dataURL을 디코드해 Buffer 배열로 돌려준다.
    * @param {{prompt: string, size: string, n?: number}} req
    */
-  async generate({ prompt, size = "1024x1024", n = 1 }) {
+  async generate({ prompt, size = "1024x1024", n = 1, provider = "auto" }) {
     await this.ensureRunning();
     const r = await fetch(`${this.baseUrl}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, size, quality: this.quality, format: "png", n }),
+      // provider "api"는 과금 모드 — UI 확인 다이얼로그를 거친 경우에만 전달된다
+      body: JSON.stringify({ prompt, size, quality: this.quality, format: "png", n, provider }),
       signal: AbortSignal.timeout(600_000),
     });
     const payload = await r.json().catch(() => ({}));

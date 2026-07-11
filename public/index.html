@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ContentForge — 편집실</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="statusbar">
+    <button class="btn-menu" id="btnMenu" aria-label="프로젝트 목록 열기">☰</button>
+    <span class="logo">ContentForge</span>
+    <div class="badges" id="badges" aria-live="polite"></div>
+    <button class="btn-settings" id="btnSettings">엔진 설정</button>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="프로젝트 목록">
+      <h2>프로젝트</h2>
+      <div id="projectList"></div>
+      <button class="btn-new" id="btnNew">+ 새 작업</button>
+    </nav>
+
+    <main class="main">
+      <div class="main-inner" id="main"></div>
+    </main>
+  </div>
+
+  <!-- 새 작업 다이얼로그 -->
+  <dialog id="dlgNew">
+    <h3>새 작업</h3>
+    <form method="dialog" id="formNew">
+      <div class="form-row">
+        <label for="npName">작업 이름</label>
+        <input type="text" id="npName" placeholder="예: 주말 나들이 후기" required />
+      </div>
+      <div class="form-row">
+        <label for="npTopic">주제</label>
+        <input type="text" id="npTopic" placeholder="글의 주제 한 줄" />
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label for="npMode">매체</label>
+          <select id="npMode">
+            <option value="blog">네이버 블로그</option>
+            <option value="insta">인스타그램</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="npStyle">스타일</label>
+          <select id="npStyle"></select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <span class="spacer"></span>
+        <button class="btn" value="cancel" formnovalidate>취소</button>
+        <button class="btn primary" value="ok" id="btnCreate">만들기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 엔진 설정 다이얼로그 -->
+  <dialog id="dlgSettings">
+    <h3>엔진 설정</h3>
+    <div class="form-row">
+      <label for="setWriter">글쓰기 엔진 (구독 CLI)</label>
+      <select id="setWriter">
+        <option value="mock">mock — 오프라인 데모</option>
+        <option value="claude">claude — Claude Code (Max 구독)</option>
+        <option value="codex">codex — Codex CLI (ChatGPT 구독)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="setImage">이미지 엔진</label>
+      <select id="setImage">
+        <option value="mock">mock — 플레이스홀더</option>
+        <option value="ima2">ima2 — ima2-gen (OAuth, 과금 없음)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="setProvider">이미지 과금 모드</label>
+      <select id="setProvider">
+        <option value="oauth">OAuth — ChatGPT 구독 (기본, 과금 없음)</option>
+        <option value="api">API Key — 장당 과금 ⚠</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <span class="spacer"></span>
+      <button class="btn" id="btnSettingsClose">닫기</button>
+      <button class="btn primary" id="btnSettingsSave">적용</button>
+    </div>
+  </dialog>
+
+  <!-- API Key 과금 경고 (danger 테두리 확인 다이얼로그 §3.6) -->
+  <dialog id="dlgBilling" class="danger">
+    <h3>⚠ API Key 모드 — 과금 발생</h3>
+    <div class="d-body">
+      API Key 모드는 이미지 <b>장당 약 $0.04~0.07</b>(quality medium 기준)이 OpenAI 계정에 청구됩니다.<br /><br />
+      기본 OAuth 모드는 ChatGPT Plus/Pro 구독으로 추가 과금이 없습니다. 정말 전환할까요?
+    </div>
+    <div class="btn-row">
+      <span class="spacer"></span>
+      <button class="btn" id="btnBillingCancel">OAuth 유지</button>
+      <button class="btn" id="btnBillingConfirm" style="border-color: var(--danger); color: var(--danger);">과금 동의하고 전환</button>
+    </div>
+  </dialog>
+
+  <!-- 이미지 프롬프트 편집 -->
+  <dialog id="dlgPrompt">
+    <h3>이미지 프롬프트 편집</h3>
+    <div class="form-row">
+      <label for="promptText" id="promptLabel">프롬프트</label>
+      <textarea id="promptText" style="min-height: 120px"></textarea>
+    </div>
+    <div class="btn-row">
+      <span class="spacer"></span>
+      <button class="btn" id="btnPromptCancel">취소</button>
+      <button class="btn primary" id="btnPromptSave">저장 후 재생성</button>
+    </div>
+  </dialog>
+
+  <input type="file" id="fileInput" multiple accept=".md,.txt,.png,.jpg,.jpeg,.webp,.gif" hidden />
+  <script src="app.js"></script>
+</body>
+</html>
