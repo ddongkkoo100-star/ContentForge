@@ -108,6 +108,46 @@ export function parseBlogDraft(text) {
   };
 }
 
+/** 릴스 대본 파싱 — JSON 실패 시 전체 텍스트를 대본으로 취급 */
+export function parseReelsDraft(text) {
+  const json = extractJson(text);
+  if (json && Array.isArray(json.scenes) && json.scenes.length > 0) {
+    const tier = (arr) => (Array.isArray(arr) ? arr.map((t) => String(t).replace(/^#/, "")) : []);
+    return {
+      hook: String(json.hook ?? ""),
+      cover_text: String(json.cover_text ?? ""),
+      scenes: json.scenes.map((s, i) => ({
+        no: Number(s.no ?? i + 1),
+        seconds: Number(s.seconds ?? 5),
+        scene: String(s.scene ?? ""),
+        overlay: String(s.overlay ?? ""),
+        voiceover: String(s.voiceover ?? ""),
+      })),
+      cta: String(json.cta ?? ""),
+      caption: String(json.caption ?? json.hook ?? ""),
+      hashtags: {
+        popular: tier(json.hashtags?.popular),
+        mid: tier(json.hashtags?.mid),
+        niche: tier(json.hashtags?.niche),
+      },
+      cover_image_prompt: String(json.cover_image_prompt ?? ""),
+      _fallback: false,
+    };
+  }
+  const raw = text.trim();
+  if (!raw) throw new Error("릴스 대본 파싱 실패 — 빈 응답");
+  return {
+    hook: raw.split("\n")[0] ?? "",
+    cover_text: "",
+    scenes: [{ no: 1, seconds: 30, scene: "(파싱 폴백 — 대본 전문 참고)", overlay: "", voiceover: raw }],
+    cta: "",
+    caption: raw,
+    hashtags: { popular: [], mid: [], niche: [] },
+    cover_image_prompt: "",
+    _fallback: true,
+  };
+}
+
 /** 인스타 초안 파싱 — JSON 실패 시 전체 텍스트를 캡션으로 취급 */
 export function parseInstaDraft(text) {
   const json = extractJson(text);

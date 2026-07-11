@@ -2,6 +2,7 @@
 // (multer 의존 없이 express.json만으로 처리)
 import { writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { fetchUrlAsMaterial } from "../intake/webpage.js";
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
@@ -44,5 +45,20 @@ export function registerIntakeRoutes(app, ctx) {
     state.summary = null; // 자료가 바뀌면 요약 캐시 무효화
     ctx.store.save(state);
     res.json({ project: state, saved });
+  }));
+
+  // URL로 자료 가져오기 — 페이지 본문을 추출해 조사자료로 저장
+  app.post("/api/intake/url", wrap(async (req, res) => {
+    const { projectId, url } = req.body ?? {};
+    if (!projectId || !url) throw Object.assign(new Error("projectId와 url이 필요합니다"), { status: 400 });
+    const state = ctx.store.load(projectId);
+    const { filename, markdown, title } = await fetchUrlAsMaterial(url);
+    writeFileSync(join(ctx.store.dirOf(projectId), "materials", filename), markdown);
+    const entry = { filename, type: "text", bytes: Buffer.byteLength(markdown), uploadedAt: new Date().toISOString(), sourceUrl: url };
+    state.materials.push(entry);
+    state.summary = null;
+    ctx.store.save(state);
+    ctx.log(`URL 자료 저장: ${url} → ${filename}`);
+    res.json({ project: state, saved: entry, title });
   }));
 }

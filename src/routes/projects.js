@@ -1,7 +1,30 @@
-// 프로젝트 CRUD + 단계 수동 이동 + 승인.
+// 프로젝트 CRUD + 단계 수동 이동 + 승인 + 프리셋 (조회/톤 학습).
+import { readFileSync, writeFileSync, existsSync, renameSync } from "node:fs";
+import { join } from "node:path";
 import { STYLE_PRESETS } from "../prompts/presets.js";
+import { buildToneLearnPrompt } from "../prompts/learn.js";
+import { extractJson } from "../prompts/parse.js";
+import { withRetries } from "../writers/base.js";
 import { DISCLOSURES, DISCLOSURE_LABELS } from "../export/disclosure.js";
 import { runQualityChecks } from "../pipeline/quality.js";
+
+/** 학습된 프리셋을 config.json에 영속화 (재시작 후에도 유지) */
+function persistPreset(config, key, preset) {
+  const path = join(config.root, "config.json");
+  let fileCfg = {};
+  if (existsSync(path)) {
+    try {
+      fileCfg = JSON.parse(readFileSync(path, "utf-8"));
+    } catch {
+      /* 깨진 config는 새로 구성 */
+    }
+  }
+  fileCfg.presets = { ...(fileCfg.presets ?? {}), [key]: preset };
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, JSON.stringify(fileCfg, null, 2));
+  renameSync(tmp, path);
+  config.presets = { ...(config.presets ?? {}), [key]: preset }; // 런타임 반영
+}
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
@@ -12,7 +35,7 @@ export function registerProjectRoutes(app, ctx) {
 
   app.post("/api/projects", wrap((req, res) => {
     const { name, mode = "blog", style = "info", topic = "", disclosure = "none" } = req.body ?? {};
-    if (!["blog", "insta"].includes(mode)) throw Object.assign(new Error("mode는 blog|insta"), { status: 400 });
+    if (!["blog", "insta", "reels"].includes(mode)) throw Object.assign(new Error("mode는 blog|insta|reels"), { status: 400 });
     const presets = { ...STYLE_PRESETS, ...(ctx.config.presets ?? {}) };
     if (!presets[style]) throw Object.assign(new Error(`알 수 없는 스타일: ${style}`), { status: 400 });
     if (!DISCLOSURES.includes(disclosure)) {
@@ -66,6 +89,29 @@ export function registerProjectRoutes(app, ctx) {
     }
     ctx.log(`승인됨: ${state.id} @ ${state.approvedAt}`);
     res.json({ project: state });
+  }));
+
+  // 내 글 톤 학습 — 샘플 글에서 문체 프리셋을 생성해 저장
+  app.post("/api/presets/learn", wrap(async (req, res) => {
+    const { name, samples } = req.body ?? {};
+    if (typeof samples !== "string" || samples.trim().length < 200) {
+      throw Object.assign(new Error("samples에 기존 글을 200자 이상 붙여넣어 주세요 (1~2편 권장)"), { status: 400 });
+    }
+    const writer = ctx.getWriter();
+    const reqPrompt = buildToneLearnPrompt({ samples: samples.slice(0, 60_000), name });
+    const { text } = await withRetries(() => writer.generate(reqPrompt), {
+      maxRetries: ctx.config.writer.maxRetries,
+    });
+    const json = extractJson(text);
+    if (!json || typeof json.prompt !== "string" || !json.prompt.trim()) {
+      throw Object.assign(new Error("문체 분석 결과를 파싱하지 못했습니다 — 다시 시도해 주세요"), { status: 502 });
+    }
+    const label = String(name || json.label || "내 톤").slice(0, 30);
+    const key = `custom-${label.toLowerCase().replace(/[^a-z0-9가-힣]+/g, "-").replace(/^-+|-+$/g, "") || "tone"}`;
+    const preset = { label, prompt: json.prompt.trim() };
+    persistPreset(ctx.config, key, preset);
+    ctx.log(`톤 프리셋 저장: ${key} (${label})`);
+    res.json({ key, preset });
   }));
 
   // 스타일 프리셋 조회 (UI 선택 목록)

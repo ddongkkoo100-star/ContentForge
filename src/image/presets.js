@@ -10,6 +10,7 @@ export const SIZE_PRESETS = {
 
 /** 프로젝트 모드 + 이미지 역할 → 크기 프리셋 결정 */
 export function sizeFor(mode, role) {
+  if (mode === "reels") return SIZE_PRESETS["insta-portrait"]; // 릴스 커버는 세로
   if (mode === "insta") return role === "portrait" ? SIZE_PRESETS["insta-portrait"] : SIZE_PRESETS["insta-square"];
   return role === "header" ? SIZE_PRESETS["blog-header"] : SIZE_PRESETS["blog-body"];
 }

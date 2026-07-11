@@ -43,7 +43,7 @@ export function buildOutlinePrompt({ topic, mode = "blog", style = "info", mater
     system: [SYSTEM_BASE, "", `<스타일>\n${preset.prompt}\n</스타일>`].join("\n"),
     prompt: [
       `주제: ${topic}`,
-      `매체: ${mode === "insta" ? "인스타그램" : "네이버 블로그"}`,
+      `매체: ${mode === "insta" ? "인스타그램" : mode === "reels" ? "인스타그램 릴스" : "네이버 블로그"}`,
       "",
       TASK_TEMPLATES.outline.instruction,
       "",
@@ -52,9 +52,11 @@ export function buildOutlinePrompt({ topic, mode = "blog", style = "info", mater
   };
 }
 
+const DRAFT_TASKS = { blog: "draft-blog", insta: "draft-insta", reels: "draft-reels" };
+
 export function buildDraftPrompt({ topic, mode = "blog", style = "info", materialText = "", outline, presetOverrides }) {
   const preset = resolvePreset(style, presetOverrides);
-  const task = mode === "insta" ? "draft-insta" : "draft-blog";
+  const task = DRAFT_TASKS[mode] ?? "draft-blog";
   const outlineBlock = outline
     ? `<확정된 개요>\n${JSON.stringify(outline, null, 2)}\n</확정된 개요>\n`
     : "";

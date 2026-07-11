@@ -91,7 +91,7 @@ function renderSidebar() {
     .map((p) => `
       <button class="project-item ${S.project?.id === p.id ? "active" : ""}" data-id="${esc(p.id)}">
         ${esc(p.name)}
-        <span class="p-meta">${p.mode === "insta" ? "insta" : "blog"} · ${esc(p.stage)}</span>
+        <span class="p-meta">${esc(p.mode)} · ${esc(p.stage)}</span>
       </button>`)
     .join("");
   el.querySelectorAll(".project-item").forEach((btn) =>
@@ -215,13 +215,18 @@ function renderIntake(expanded) {
   const files = p.materials
     .map((m) => `<li>${m.type === "image" ? "🖼" : "📄"} ${esc(m.filename)}<span class="f-size">${(m.bytes / 1024).toFixed(1)}KB</span></li>`)
     .join("");
+  const modeLabel = { blog: "네이버 블로그", insta: "인스타그램", reels: "인스타 릴스" }[p.mode] ?? p.mode;
   return `
     <div class="card">
       <h3>① 자료</h3>
-      <p class="c-sub">${esc(p.topic || p.name)} · ${p.mode === "insta" ? "인스타그램" : "네이버 블로그"} · ${esc(p.style)}</p>
+      <p class="c-sub">${esc(p.topic || p.name)} · ${modeLabel} · ${esc(p.style)}</p>
       <div class="dropzone" id="drop">
         <div class="dz-big">조사자료를 끌어다 놓으면 시작합니다</div>
         <div>md / txt / 이미지 (클릭해서 선택도 가능)</div>
+      </div>
+      <div class="btn-row" style="margin-top: 12px">
+        <input type="text" id="urlInput" placeholder="또는 URL 붙여넣기 — 페이지 본문을 자료로 가져옵니다" style="flex: 1" />
+        <button class="btn" id="btnUrl" ${S.working ? "disabled" : ""}>가져오기</button>
       </div>
       ${files ? `<ul class="file-list">${files}</ul>` : ""}
       <div class="btn-row">
@@ -255,24 +260,41 @@ function renderOutline(expanded) {
 }
 
 /* ── ③ 초안 (+diff) ─────────────────────────────── */
+/* 릴스 대본을 diff/표시용 평문으로 */
+function reelsText(d) {
+  return [
+    `훅: ${d.hook}`,
+    `커버: ${d.cover_text}`,
+    ...(d.scenes ?? []).map((s) => `#${s.no} [${s.seconds}s] ${s.scene} | 자막: ${s.overlay} | 내레이션: ${s.voiceover}`),
+    `CTA: ${d.cta}`,
+    "",
+    d.caption ?? "",
+  ].join("\n");
+}
+
+function draftText(mode, d) {
+  if (mode === "reels") return reelsText(d);
+  return mode === "insta" ? d.caption : d.body_md;
+}
+
 function renderDraft(expanded) {
   const p = S.project;
   const d = p.draft.current;
   if (!expanded) {
-    const len = d ? (d.body_md ?? d.caption ?? "").length : 0;
+    const len = d ? draftText(p.mode, d).length : 0;
     return collapsedCard(2, "③ 초안", d ? `${len.toLocaleString()}자` : "-");
   }
   if (!d) return `<div class="card"><h3>③ 초안</h3><p class="c-sub">아직 초안이 없습니다.</p></div>`;
-  const text = p.mode === "insta" ? d.caption : d.body_md;
+  const text = draftText(p.mode, d);
   const prev = p.draft.history.length ? p.draft.history[p.draft.history.length - 1] : null;
-  const prevText = prev ? (p.mode === "insta" ? prev.caption : prev.body_md) : null;
+  const prevText = prev ? draftText(p.mode, prev) : null;
   const showDiff = prevText != null && prevText !== text;
   const bodyHtml = showDiff ? diffHtml(prevText, text) : esc(text);
   return `
     <div class="card">
       <h3>③ 초안</h3>
       <p class="c-sub">
-        ${p.mode === "insta" ? "캡션 + 슬라이드" : `제목 후보 ${d.titles?.length ?? 0}개 · 태그 ${d.tags?.length ?? 0}개`}
+        ${p.mode === "insta" ? "캡션 + 슬라이드" : p.mode === "reels" ? `릴스 대본 ${d.scenes?.length ?? 0}장면` : `제목 후보 ${d.titles?.length ?? 0}개 · 태그 ${d.tags?.length ?? 0}개`}
         ${p.draft.history.length ? ` · 재생성 ${p.draft.history.length}회 ${showDiff ? "(변경부 하이라이트)" : ""}` : ""}
         ${d._fallback ? ` · <span style="color: var(--danger)">JSON 파싱 폴백</span>` : ""}
       </p>
@@ -284,7 +306,7 @@ function renderDraft(expanded) {
       ${p.mode === "blog" && d.tags?.length ? `<div style="margin-top:10px">${d.tags.map((t) => `<span class="tag-chip">#${esc(t)}</span>`).join("")}</div>` : ""}
       <div class="btn-row">
         <button class="btn" id="btnReDraft" ${S.working ? "disabled" : ""}>재생성</button>
-        <button class="btn" id="btnEditDraft" ${S.working ? "disabled" : ""}>직접 수정</button>
+        ${p.mode !== "reels" ? `<button class="btn" id="btnEditDraft" ${S.working ? "disabled" : ""}>직접 수정</button>` : ""}
         <button class="btn primary" id="btnSaveDraft" hidden>수정 저장</button>
         <span class="spacer"></span>
         ${workingNote("초안 재생성")}${workingNote("이미지 생성")}
@@ -360,7 +382,7 @@ function renderApprove() {
   const stampMark = approved
     ? `<div class="stamp-mark">승인됨 · ${fmtDate(p.approvedAt)}</div>`
     : "";
-  const preview = p.mode === "insta" ? renderInstaPreview() : renderBlogPreview();
+  const preview = p.mode === "insta" ? renderInstaPreview() : p.mode === "reels" ? renderReelsPreview() : renderBlogPreview();
   // 품질 점검은 비동기 로드 — 없으면 요청 후 재렌더
   if (!S.quality || S.quality.id !== p.id) {
     api("GET", `/api/projects/${p.id}/quality`)
@@ -388,7 +410,7 @@ function renderApprove() {
           <div class="mono">${approved ? `승인 완료 — 패키지를 출력할 수 있습니다` : `PREVIEW 상태에서만 승인할 수 있습니다`}</div>
           <div class="btn-row" style="margin-top: 10px">
             <button class="btn primary" id="btnExport" ${approved && !S.working ? "" : "disabled"}>패키지 출력 (Export)</button>
-            ${p.stage === "EXPORTED" ? `<span class="mono">출력됨 · ${fmtDate(p.exportedAt)} → output/${esc(p.id)}-${p.mode}</span>` : ""}
+            ${p.stage === "EXPORTED" ? `<a class="btn" href="/api/projects/${esc(p.id)}/export.zip" download>ZIP 다운로드</a><span class="mono">출력됨 · ${fmtDate(p.exportedAt)} → output/${esc(p.id)}-${p.mode}</span>` : ""}
             ${workingNote("패키지 출력")}
           </div>
         </div>
@@ -455,6 +477,36 @@ function mdPreview(md) {
   return out.join("\n");
 }
 
+/* 릴스 미리보기 — 커버 + 타임라인 대본 */
+function renderReelsPreview() {
+  const p = S.project;
+  const d = p.draft.current;
+  if (!d) return "";
+  const cover = p.images.find((i) => i.file);
+  const totalSec = (d.scenes ?? []).reduce((s, x) => s + (x.seconds || 0), 0);
+  return `
+    <div style="display:flex; gap:20px; flex-wrap:wrap">
+      <div class="phone-frame" style="width: 200px; flex: none">
+        <div class="ph-top"></div>
+        <div class="carousel" style="aspect-ratio: 2/3">
+          ${cover ? `<img src="/api/projects/${p.id}/images/${cover.file}" alt="커버" style="width:100%;height:100%;object-fit:cover" />` : ""}
+          <div class="s-text" style="position:absolute;inset:auto 0 0 0;padding:12px">${esc(d.cover_text)}</div>
+        </div>
+        <div class="ph-caption">${esc(d.caption)}</div>
+      </div>
+      <div style="flex:1; min-width: 300px">
+        <div class="mono" style="margin-bottom:8px">훅 (0~3초) · 총 ${totalSec}초</div>
+        <p style="font-size:16px; font-weight:600; margin-bottom:12px">${esc(d.hook)}</p>
+        <ol class="outline-list">
+          ${(d.scenes ?? []).map((s) => `
+            <li><span class="o-heading">${s.seconds}s — ${esc(s.overlay || "(자막 없음)")}</span>
+            <div class="o-summary">🎬 ${esc(s.scene)}<br />🎙 ${esc(s.voiceover)}</div></li>`).join("")}
+        </ol>
+        <p style="margin-top:10px"><span class="mono">CTA</span> ${esc(d.cta)}</p>
+      </div>
+    </div>`;
+}
+
 /* 인스타 폰 프레임 + 캐러셀 스와이프 시뮬레이터 (§3.6) */
 function renderInstaPreview() {
   const p = S.project;
@@ -495,6 +547,16 @@ function bindStepEvents(cur) {
 
   const drop = $("#drop");
   if (drop) bindDropzone(drop, uploadFiles);
+
+  $("#btnUrl")?.addEventListener("click", () => {
+    const url = $("#urlInput").value.trim();
+    if (!url) return;
+    act("URL 자료 가져오기", async () => {
+      await api("POST", "/api/intake/url", { projectId: S.project.id, url });
+      await reloadProject();
+    });
+  });
+  $("#urlInput")?.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#btnUrl").click(); });
 
   $("#btnOutline")?.addEventListener("click", () =>
     act("개요 생성", async () => { await api("POST", "/api/outline", { projectId: S.project.id }); await reloadProject(); }));
@@ -666,6 +728,36 @@ async function initDialogs() {
   });
 
   $("#btnMenu").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+
+  // 내 글 톤 학습
+  const dlgTone = $("#dlgTone");
+  $("#btnTone").addEventListener("click", () => dlgTone.showModal());
+  $("#btnToneCancel").addEventListener("click", () => dlgTone.close());
+  $("#btnToneLearn").addEventListener("click", async () => {
+    const btn = $("#btnToneLearn");
+    btn.disabled = true;
+    $("#toneWorking").hidden = false;
+    try {
+      const { key, preset } = await api("POST", "/api/presets/learn", {
+        name: $("#toneName").value.trim(),
+        samples: $("#toneSamples").value,
+      });
+      // 스타일 목록 갱신
+      const { presets } = await api("GET", "/api/presets");
+      S.presets = presets;
+      $("#npStyle").innerHTML = Object.entries(presets)
+        .map(([k, v]) => `<option value="${esc(k)}" ${k === key ? "selected" : ""}>${esc(v.label)}</option>`)
+        .join("");
+      dlgTone.close();
+      alert(`프리셋 "${preset.label}"이 추가됐습니다. 새 작업에서 선택하세요.`);
+    } catch (err) {
+      S.error = { message: err.message };
+      dlgTone.close();
+      render();
+    }
+    btn.disabled = false;
+    $("#toneWorking").hidden = true;
+  });
 
   const dlgSet = $("#dlgSettings");
   $("#btnSettings").addEventListener("click", () => {

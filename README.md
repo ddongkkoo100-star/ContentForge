@@ -29,11 +29,11 @@ npm test            # 전체 테스트 (mock E2E 포함)
 ① 자료 → ② 개요 → ③ 초안 → ④ 이미지 → ⑤ 승인 → Export
 ```
 
-1. **새 작업** 생성 (매체: 블로그/인스타, 스타일: `family-log`/`info`/`review`/`product-review`, 협찬 여부)
-2. 조사자료를 드롭존에 끌어다 놓기 (md/txt/이미지, 50KB 초과 시 자동 사전 요약)
+1. **새 작업** 생성 (매체: 블로그/인스타/**릴스 대본**, 스타일: `family-log`/`info`/`review`/`product-review`/학습된 커스텀 톤, 협찬 여부)
+2. 조사자료를 드롭존에 끌어다 놓거나 **URL을 붙여넣어** 페이지 본문을 자료로 가져오기 (50KB 초과 시 자동 사전 요약)
 3. 각 단계는 확인 후 직접 진행 — 개요/초안은 **재생성**(diff 하이라이트)과 **직접 수정** 가능
 4. 이미지 셀에 마우스를 올려 **재생성 / 프롬프트 편집**
-5. 승인 단계의 **발행 전 품질 점검**(제목 길이·분량·이미지 배치·과장 표현·공정위 표시)을 확인하고 **승인 도장**을 찍으면 Export가 활성화 → `output/` 아래 패키지 생성
+5. 승인 단계의 **발행 전 품질 점검**(제목 길이·분량·이미지 배치·과장 표현·공정위 표시, 릴스는 훅/장면 수/총 길이/자막 길이)을 확인하고 **승인 도장**을 찍으면 Export가 활성화 → `output/` 아래 패키지 생성 + **ZIP 다운로드**
 
 ### 공정위 표시문구 자동 삽입
 
@@ -46,13 +46,17 @@ npm test            # 전체 테스트 (mock E2E 포함)
 ### 출력 패키지
 
 ```
-output/<project>-blog/            output/<project>-insta/
-├── post.md                       ├── caption.txt
-├── post.html   (스마트에디터용)   ├── hashtags.txt (인기/중간/틈새 3단)
-├── images/01-header.png …        ├── carousel/slide-01.png …
-├── image-map.md ([IMG-01] 매핑)  └── slides.md (문구는 이미지에 굽지 않음)
+output/<project>-blog/            output/<project>-insta/           output/<project>-reels/
+├── post.md                       ├── caption.txt                   ├── script.md (타임라인 대본)
+├── post.html   (스마트에디터용)   ├── hashtags.txt (인기/중간/틈새)  ├── caption.txt
+├── images/01-header.png …        ├── carousel/slide-01.png …       ├── hashtags.txt
+├── image-map.md ([IMG-01] 매핑)  └── slides.md                     └── cover/cover.png (9:16)
 └── meta.md     (제목 3안/태그/썸네일)
 ```
+
+### 내 글 톤 학습
+
+사이드바 **✎ 내 글 톤 학습**에 기존 발행글 1~2편을 붙여넣으면 Writer가 문체(어미, 문장 길이, 이모지 습관 등)를 분석해 커스텀 스타일 프리셋을 만들고 `config.json`에 저장합니다. 이후 새 작업의 스타일 목록에서 선택할 수 있습니다.
 
 ## 설정
 

@@ -23,6 +23,7 @@
       <h2>프로젝트</h2>
       <div id="projectList"></div>
       <button class="btn-new" id="btnNew">+ 새 작업</button>
+      <button class="btn-new" id="btnTone">✎ 내 글 톤 학습</button>
     </nav>
 
     <main class="main">
@@ -48,6 +49,7 @@
           <select id="npMode">
             <option value="blog">네이버 블로그</option>
             <option value="insta">인스타그램</option>
+            <option value="reels">인스타 릴스 (대본)</option>
           </select>
         </div>
         <div class="form-row">
@@ -110,6 +112,26 @@
       <span class="spacer"></span>
       <button class="btn" id="btnBillingCancel">OAuth 유지</button>
       <button class="btn" id="btnBillingConfirm" style="border-color: var(--danger); color: var(--danger);">과금 동의하고 전환</button>
+    </div>
+  </dialog>
+
+  <!-- 내 글 톤 학습 -->
+  <dialog id="dlgTone">
+    <h3>내 글 톤 학습</h3>
+    <div class="d-body">기존에 발행한 글 1~2편을 붙여넣으면, 문체를 분석해 나만의 스타일 프리셋을 만듭니다. 새 작업의 스타일 목록에 추가돼요.</div>
+    <div class="form-row">
+      <label for="toneName">프리셋 이름</label>
+      <input type="text" id="toneName" placeholder="예: 내 블로그 톤" />
+    </div>
+    <div class="form-row">
+      <label for="toneSamples">기존 글 붙여넣기 (200자 이상)</label>
+      <textarea id="toneSamples" style="min-height: 180px" placeholder="발행글 본문을 그대로 붙여넣으세요. 여러 편이면 이어서."></textarea>
+    </div>
+    <div class="btn-row">
+      <span class="spacer"></span>
+      <span class="working" id="toneWorking" hidden>문체 분석 중…</span>
+      <button class="btn" id="btnToneCancel">취소</button>
+      <button class="btn primary" id="btnToneLearn">분석해서 프리셋 만들기</button>
     </div>
   </dialog>
 

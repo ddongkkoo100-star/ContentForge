@@ -85,6 +85,23 @@ export const TASK_TEMPLATES = {
       "해시태그는 # 없이 텍스트만 넣으세요.",
     ].join("\n"),
   },
+  "draft-reels": {
+    instruction: [
+      "개요와 조사자료를 바탕으로 인스타그램 릴스(60초 이내) 대본을 작성하세요.",
+      "다음 JSON 형식으로만 응답하세요:",
+      JSON.stringify({
+        hook: "0~3초에 시선을 잡는 첫 멘트 (한 문장)",
+        cover_text: "커버(썸네일)에 올릴 짧은 문구",
+        scenes: [{ no: 1, seconds: 5, scene: "화면에 보여줄 것", overlay: "화면 자막 (짧게)", voiceover: "내레이션 대사" }],
+        cta: "마지막 행동 유도 멘트 (저장/팔로우/댓글)",
+        caption: "게시용 캡션 (첫 줄 훅 + 본문 + CTA)",
+        hashtags: { popular: ["인기 7~10개"], mid: ["중간 7~10개"], niche: ["틈새 6~10개"] },
+        cover_image_prompt: "커버 이미지 생성 프롬프트 (세로 9:16 구도)",
+      }),
+      "장면(scenes)은 4~8개, 전체 합계 60초 이내로 구성하세요.",
+      "자막(overlay)은 12자 이내로 짧게, 해시태그는 # 없이 텍스트만.",
+    ].join("\n"),
+  },
   summarize: {
     instruction: [
       "아래 조사자료가 너무 깁니다. 글쓰기에 필요한 핵심만 남기고 요약하세요.",

@@ -92,12 +92,49 @@ function checkInsta(state, draft) {
   return checks;
 }
 
+function checkReels(state, draft) {
+  const checks = [];
+  const hook = draft.hook ?? "";
+  checks.push(
+    hook.length > 0 && hook.length <= 30
+      ? check("hook", "pass", "훅", `${hook.length}자`)
+      : check("hook", "warn", "훅", `${hook.length}자 — 30자 이내 한 문장 권장`),
+  );
+  const scenes = draft.scenes?.length ?? 0;
+  checks.push(
+    scenes >= 4 && scenes <= 8
+      ? check("scenes", "pass", "장면 수", `${scenes}개`)
+      : check("scenes", "warn", "장면 수", `${scenes}개 — 4~8개 권장`),
+  );
+  const totalSec = (draft.scenes ?? []).reduce((s, x) => s + (x.seconds || 0), 0);
+  checks.push(
+    totalSec > 0 && totalSec <= 60
+      ? check("duration", "pass", "총 길이", `약 ${totalSec}초`)
+      : check("duration", totalSec > 90 ? "fail" : "warn", "총 길이", `약 ${totalSec}초 — 60초 이내 권장`),
+  );
+  const longOverlays = (draft.scenes ?? []).filter((s) => (s.overlay ?? "").length > 12).length;
+  checks.push(
+    longOverlays === 0
+      ? check("overlay", "pass", "자막 길이", "전부 12자 이내")
+      : check("overlay", "warn", "자막 길이", `${longOverlays}개 장면의 자막이 12자 초과`),
+  );
+  const ht = draft.hashtags ?? {};
+  const total = (ht.popular?.length ?? 0) + (ht.mid?.length ?? 0) + (ht.niche?.length ?? 0);
+  checks.push(
+    total >= 20 && total <= 30
+      ? check("hashtags", "pass", "해시태그", `${total}개`)
+      : check("hashtags", "warn", "해시태그", `${total}개 — 20~30개 권장`),
+  );
+  return checks;
+}
+
 export function runQualityChecks(state) {
   const draft = state.draft?.current;
   if (!draft) return [check("no-draft", "warn", "초안 없음", "점검할 초안이 없습니다")];
 
-  const checks = state.mode === "insta" ? checkInsta(state, draft) : checkBlog(state, draft);
-  const text = state.mode === "insta" ? (draft.caption ?? "") : (draft.body_md ?? "");
+  const checkers = { blog: checkBlog, insta: checkInsta, reels: checkReels };
+  const checks = (checkers[state.mode] ?? checkBlog)(state, draft);
+  const text = state.mode === "blog" ? (draft.body_md ?? "") : (draft.caption ?? "");
 
   // 과장 표현 — 심의/신뢰도 리스크
   const hits = HYPE_WORDS.filter((w) => text.includes(w));
@@ -116,7 +153,7 @@ export function runQualityChecks(state) {
         : check("disclosure", "pass", "공정위 표시", "해당 없음"),
     );
   } else {
-    const label = state.mode === "insta" ? "캡션 첫 줄에 자동 삽입됨" : "본문 상단에 자동 삽입됨";
+    const label = state.mode === "blog" ? "본문 상단에 자동 삽입됨" : "캡션 첫 줄에 자동 삽입됨";
     checks.push(check("disclosure", "pass", "공정위 표시", `${state.disclosure} — export 시 ${label}`));
   }
   return checks;

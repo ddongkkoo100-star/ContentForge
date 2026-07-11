@@ -74,6 +74,26 @@ const MOCK_INSTA_DRAFT = {
   ],
 };
 
+const MOCK_REELS_DRAFT = {
+  hook: "주말에 애들 데리고 갈 곳, 아직도 검색 중이세요?",
+  cover_text: "주말 나들이 30초 정리",
+  scenes: [
+    { no: 1, seconds: 3, scene: "입구 전경 워킹샷", overlay: "여기 어디게요?", voiceover: "아이 셋 아빠가 직접 다녀왔습니다." },
+    { no: 2, seconds: 8, scene: "예약 화면 클로즈업", overlay: "예약은 앱으로", voiceover: "현장 발권은 30분 대기, 앱 예약이면 바로 입장이에요." },
+    { no: 3, seconds: 10, scene: "체험 코스 아이들 몰입 장면", overlay: "몰입도 최고", voiceover: "하이라이트는 아이 눈높이 체험 코스." },
+    { no: 4, seconds: 8, scene: "식당 한적한 내부", overlay: "11:30 전 점심", voiceover: "점심은 11시 반 전에 — 웨이팅 제로." },
+    { no: 5, seconds: 5, scene: "아이들 손흔드는 마무리", overlay: "저장 필수", voiceover: "저장해 두고 이번 주말에 바로 가보세요!" },
+  ],
+  cta: "저장하고 팔로우하면 다음 주말 코스도 알려드려요",
+  caption: "아이 셋 아빠의 주말 코스 30초 정리 🧡\n\n저장해 두면 이번 주말 계획 끝!\n\n👉 저장 + 팔로우",
+  hashtags: {
+    popular: ["주말나들이", "아이와가볼만한곳", "가족여행", "육아스타그램", "릴스추천", "국내여행", "주말데이트"],
+    mid: ["아이와주말", "체험학습추천", "가족나들이", "아이랑여행", "주말계획", "육아일상공유", "키즈여행"],
+    niche: ["세아이아빠", "다둥이나들이", "아빠육아일기", "우리동네나들이", "예약꿀팁", "주차꿀팁"],
+  },
+  cover_image_prompt: "세로 9:16 구도, 가족 나들이 커버 이미지, 상단 여백에 문구 공간, 밝은 톤",
+};
+
 export class MockAdapter extends WriterAdapter {
   name = "mock";
 
@@ -93,6 +113,15 @@ export class MockAdapter extends WriterAdapter {
         break;
       case "draft-insta":
         payload = JSON.stringify(MOCK_INSTA_DRAFT, null, 2);
+        break;
+      case "draft-reels":
+        payload = JSON.stringify(MOCK_REELS_DRAFT, null, 2);
+        break;
+      case "learn-tone":
+        payload = JSON.stringify({
+          label: "내 톤 (mock)",
+          prompt: "톤: 짧은 문장, 반말 섞인 친근체.\n- 문단마다 이모지 1개\n- 결론 먼저, 근거는 뒤에",
+        });
         break;
       case "summarize":
         payload = `(mock 요약) 조사자료 ${prompt.length.toLocaleString()}자를 핵심 논점 5개로 요약했습니다.`;

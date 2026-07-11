@@ -9,7 +9,7 @@ import {
   buildSummarizePrompt,
   needsSummary,
 } from "../prompts/builder.js";
-import { parseOutline, parseBlogDraft, parseInstaDraft } from "../prompts/parse.js";
+import { parseOutline, parseBlogDraft, parseInstaDraft, parseReelsDraft } from "../prompts/parse.js";
 
 /** 프로젝트의 텍스트 조사자료를 하나로 합친다 (이미지 자료는 제외). */
 export function collectMaterialText(store, state) {
@@ -73,7 +73,8 @@ export async function runDraft({ store, state, writer, config, presetOverrides, 
   const { text, meta } = await withRetries(() => writer.generate(req), {
     maxRetries: config.writer.maxRetries,
   });
-  const draft = state.mode === "insta" ? parseInstaDraft(text) : parseBlogDraft(text);
+  const parsers = { blog: parseBlogDraft, insta: parseInstaDraft, reels: parseReelsDraft };
+  const draft = (parsers[state.mode] ?? parseBlogDraft)(text);
   store.setVersioned(state, "draft", draft, text);
   // 초안에서 이미지 프롬프트 목록을 결정적으로 도출
   state.images = deriveImagePlan(state.mode, draft);
@@ -82,8 +83,17 @@ export async function runDraft({ store, state, writer, config, presetOverrides, 
   return { draft, meta };
 }
 
-/** 초안에서 이미지 생성 계획 도출 (블로그: images[], 인스타: slides[]) */
+/** 초안에서 이미지 생성 계획 도출 (블로그: images[], 인스타: slides[], 릴스: 커버 1장) */
 export function deriveImagePlan(mode, draft) {
+  if (mode === "reels") {
+    return [{
+      id: "COVER-01",
+      role: "cover",
+      prompt: draft.cover_image_prompt || `${draft.cover_text || draft.hook} — 세로 9:16 릴스 커버`,
+      file: null,
+      status: "pending",
+    }];
+  }
   if (mode === "insta") {
     return (draft.slides ?? []).map((s, i) => ({
       id: `SLIDE-${String(s.no ?? i + 1).padStart(2, "0")}`,
