@@ -3,6 +3,7 @@
 import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { mdToHtml } from "./markdown.js";
+import { blogDisclosureText } from "./disclosure.js";
 
 /** 본문에서 [IMG-XX] 주변 소제목을 찾아 매핑표 문맥으로 쓴다 */
 function placeholderContexts(bodyMd) {
@@ -27,13 +28,17 @@ export async function exportBlogPackage({ store, state, outputDir }) {
   const title = draft.titles[0] ?? state.topic;
   const files = [];
 
+  // 공정위 표시문구 — 본문 최상단에 자동 삽입 (협찬/대여 미표기는 제재 대상)
+  const disclosure = blogDisclosureText(state.disclosure);
+  const body = disclosure ? `${disclosure}\n\n${draft.body_md}` : draft.body_md;
+
   // post.md
-  const postMd = `# ${title}\n\n${draft.body_md}\n`;
+  const postMd = `# ${title}\n\n${body}\n`;
   writeFileSync(join(dir, "post.md"), postMd);
   files.push("post.md");
 
   // post.html — [IMG-XX]는 눈에 띄는 안내 문단으로 유지 (네이버는 직접 업로드 필요)
-  writeFileSync(join(dir, "post.html"), `<h1>${title}</h1>\n${mdToHtml(draft.body_md)}\n`);
+  writeFileSync(join(dir, "post.html"), `<h1>${title}</h1>\n${mdToHtml(body)}\n`);
   files.push("post.html");
 
   // images/ 복사 + image-map.md

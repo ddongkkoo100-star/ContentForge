@@ -129,11 +129,44 @@ test("mock 모드 블로그 풀 라운드트립 + 승인 게이트", async (t) =
   assert.match(metaMd, /## 제목 후보/);
 });
 
+test("공정위 표시 — sponsored 블로그 export에 문구 삽입 + 품질 점검 API", async (t) => {
+  const { server, api, config } = await bootServer();
+  t.after(() => server.close());
+
+  let r = await api("POST", "/api/projects", { name: "협찬 리뷰", mode: "blog", style: "product-review", topic: "제품 리뷰", disclosure: "sponsored" });
+  const id = r.json.project.id;
+  assert.equal(r.json.project.disclosure, "sponsored");
+  // 잘못된 disclosure 거부
+  r = await api("POST", "/api/projects", { name: "x", disclosure: "gift" });
+  assert.equal(r.status, 400);
+
+  await api("POST", "/api/intake", { projectId: id, files: [{ name: "자료.md", text: "협찬 제공받은 제품" }] });
+  await api("POST", "/api/outline", { projectId: id });
+  await api("POST", "/api/draft", { projectId: id });
+
+  // 품질 점검 API
+  r = await api("GET", `/api/projects/${id}/quality`);
+  assert.equal(r.status, 200);
+  const disclosureCheck = r.json.checks.find((c) => c.id === "disclosure");
+  assert.equal(disclosureCheck.level, "pass"); // sponsored로 설정했으므로
+
+  await api("POST", "/api/images", { projectId: id });
+  await api("POST", `/api/projects/${id}/stage`, { to: "PREVIEW" });
+  await api("POST", `/api/projects/${id}/approve`, {});
+  await api("POST", "/api/export", { projectId: id });
+  const postMd = readFileSync(join(config.paths.output, `${id}-blog`, "post.md"), "utf-8");
+  assert.match(postMd, /제공받아 작성한 후기/); // 본문 상단 자동 삽입
+
+  // disclosure 변경 API
+  r = await api("PATCH", `/api/projects/${id}/disclosure`, { disclosure: "self-paid" });
+  assert.equal(r.json.project.disclosure, "self-paid");
+});
+
 test("mock 모드 인스타 라운드트립 — 해시태그 3단 + 캐러셀", async (t) => {
   const { server, api, config } = await bootServer();
   t.after(() => server.close());
 
-  let r = await api("POST", "/api/projects", { name: "인스타", mode: "insta", style: "info", topic: "나들이" });
+  let r = await api("POST", "/api/projects", { name: "인스타", mode: "insta", style: "info", topic: "나들이", disclosure: "sponsored" });
   const id = r.json.project.id;
   await api("POST", "/api/intake", { projectId: id, files: [{ name: "자료.txt", text: "조사 내용" }] });
   await api("POST", "/api/outline", { projectId: id });
@@ -148,7 +181,10 @@ test("mock 모드 인스타 라운드트립 — 해시태그 3단 + 캐러셀", 
   assert.equal(r.status, 200);
 
   const outDir = join(config.paths.output, `${id}-insta`);
+  const caption = readFileSync(join(outDir, "caption.txt"), "utf-8");
+  assert.match(caption, /^\[광고\]/); // sponsored → 캡션 첫 줄 표시
   const hashtags = readFileSync(join(outDir, "hashtags.txt"), "utf-8");
+  assert.match(hashtags, /#광고/);
   assert.match(hashtags, /# 인기/);
   assert.match(hashtags, /# 틈새/);
   const combined = hashtags.split("전체 붙여넣기용")[1];

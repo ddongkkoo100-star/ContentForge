@@ -398,6 +398,22 @@ textarea { min-height: 220px; resize: vertical; line-height: 1.7; }
   background: color-mix(in srgb, var(--approve) 6%, transparent);
 }
 
+/* ── 품질 점검 리스트 ───────────────────────────── */
+.quality-list { list-style: none; margin-bottom: 14px; }
+.quality-list li {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.quality-list li:last-child { border-bottom: none; }
+.quality-list .q-mark { font-family: var(--font-mono); font-size: 12px; width: 14px; text-align: center; }
+.quality-list .q-label { flex: none; min-width: 110px; }
+.quality-list .q-detail { color: var(--text-dim); font-size: 13px; }
+.quality-list .q-pass .q-mark { color: var(--approve); }
+.quality-list .q-warn .q-mark, .quality-list .q-warn .q-detail { color: var(--accent); }
+.quality-list .q-fail .q-mark, .quality-list .q-fail .q-detail { color: var(--danger); }
+
 /* ── 인스타 폰 프레임 미리보기 ──────────────────── */
 .phone-frame {
   width: 300px;

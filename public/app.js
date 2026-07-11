@@ -13,6 +13,8 @@ const S = {
   error: null,       // {message}
   working: null,     // 진행 중 작업 라벨
   expandedStep: null,// 접힌 카드 강제 펼침
+  disclosures: {},
+  quality: null,     // {id, checks} — 승인 카드 품질 점검 캐시
   generating: new Set(), // 생성 중 이미지 id
   genStartedAt: 0,
   carouselIndex: 0,
@@ -359,11 +361,26 @@ function renderApprove() {
     ? `<div class="stamp-mark">승인됨 · ${fmtDate(p.approvedAt)}</div>`
     : "";
   const preview = p.mode === "insta" ? renderInstaPreview() : renderBlogPreview();
+  // 품질 점검은 비동기 로드 — 없으면 요청 후 재렌더
+  if (!S.quality || S.quality.id !== p.id) {
+    api("GET", `/api/projects/${p.id}/quality`)
+      .then(({ checks }) => { S.quality = { id: p.id, checks }; render(); })
+      .catch(() => {});
+  }
+  const qualityHtml = S.quality?.id === p.id
+    ? `<ul class="quality-list">${S.quality.checks
+        .map((c) => `<li class="q-${c.level}"><span class="q-mark">${c.level === "pass" ? "✓" : c.level === "warn" ? "!" : "✗"}</span><span class="q-label">${esc(c.label)}</span><span class="q-detail">${esc(c.detail)}</span></li>`)
+        .join("")}</ul>`
+    : `<div class="mono">품질 점검 중…</div>`;
   return `
     <div class="card">
       ${stampMark}
       <h3>⑤ 승인</h3>
       <p class="c-sub">초안·이미지를 최종 확인하고 도장을 찍으세요. 도장 이후에만 패키지 출력이 열립니다.</p>
+      <h4>발행 전 품질 점검</h4>
+      ${qualityHtml}
+      ${p.disclosure && p.disclosure !== "none" ? `<div class="mono" style="margin-bottom:10px">공정위 표시: ${esc(S.disclosures[p.disclosure] ?? p.disclosure)} — export 시 자동 삽입</div>` : ""}
+      <h4>미리보기</h4>
       <div class="preview-scroll">${preview}</div>
       <div class="stamp-zone">
         <button class="stamp-btn" id="btnStamp" ${approved || S.working ? "disabled" : ""} aria-label="승인 도장">승인</button>
@@ -537,6 +554,7 @@ function bindStepEvents(cur) {
 async function reloadProject() {
   const { project } = await api("GET", `/api/projects/${S.project.id}`);
   S.project = project;
+  S.quality = null; // 내용이 바뀌었을 수 있으니 품질 점검 재실행
 }
 
 /* ── 파일 업로드 ────────────────────────────────── */
@@ -623,10 +641,14 @@ function openPromptDialog(id) {
 
 /* ── 새 작업 / 설정 다이얼로그 ───────────────────── */
 async function initDialogs() {
-  const { presets } = await api("GET", "/api/presets");
+  const { presets, disclosures } = await api("GET", "/api/presets");
   S.presets = presets;
+  S.disclosures = disclosures ?? {};
   $("#npStyle").innerHTML = Object.entries(presets)
     .map(([k, v]) => `<option value="${esc(k)}">${esc(v.label)}</option>`)
+    .join("");
+  $("#npDisclosure").innerHTML = Object.entries(S.disclosures)
+    .map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`)
     .join("");
 
   $("#btnNew").addEventListener("click", () => $("#dlgNew").showModal());
@@ -637,6 +659,7 @@ async function initDialogs() {
       topic: $("#npTopic").value.trim(),
       mode: $("#npMode").value,
       style: $("#npStyle").value,
+      disclosure: $("#npDisclosure").value,
     });
     await loadProjects(false);
     await selectProject(project.id);

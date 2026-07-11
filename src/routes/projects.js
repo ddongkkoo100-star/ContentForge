@@ -1,5 +1,7 @@
 // 프로젝트 CRUD + 단계 수동 이동 + 승인.
 import { STYLE_PRESETS } from "../prompts/presets.js";
+import { DISCLOSURES, DISCLOSURE_LABELS } from "../export/disclosure.js";
+import { runQualityChecks } from "../pipeline/quality.js";
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
@@ -9,12 +11,33 @@ export function registerProjectRoutes(app, ctx) {
   }));
 
   app.post("/api/projects", wrap((req, res) => {
-    const { name, mode = "blog", style = "info", topic = "" } = req.body ?? {};
+    const { name, mode = "blog", style = "info", topic = "", disclosure = "none" } = req.body ?? {};
     if (!["blog", "insta"].includes(mode)) throw Object.assign(new Error("mode는 blog|insta"), { status: 400 });
     const presets = { ...STYLE_PRESETS, ...(ctx.config.presets ?? {}) };
     if (!presets[style]) throw Object.assign(new Error(`알 수 없는 스타일: ${style}`), { status: 400 });
-    const state = ctx.store.create({ name, mode, style, topic });
+    if (!DISCLOSURES.includes(disclosure)) {
+      throw Object.assign(new Error(`disclosure는 ${DISCLOSURES.join("|")}`), { status: 400 });
+    }
+    const state = ctx.store.create({ name, mode, style, topic, disclosure });
     res.status(201).json({ project: state });
+  }));
+
+  // 표시문구 종류 변경 (작업 도중 협찬 여부가 확정되는 경우)
+  app.patch("/api/projects/:id/disclosure", wrap((req, res) => {
+    const { disclosure } = req.body ?? {};
+    if (!DISCLOSURES.includes(disclosure)) {
+      throw Object.assign(new Error(`disclosure는 ${DISCLOSURES.join("|")}`), { status: 400 });
+    }
+    const state = ctx.store.load(req.params.id);
+    state.disclosure = disclosure;
+    ctx.store.save(state);
+    res.json({ project: state });
+  }));
+
+  // 발행 전 품질 점검 (승인 카드용)
+  app.get("/api/projects/:id/quality", wrap((req, res) => {
+    const state = ctx.store.load(req.params.id);
+    res.json({ checks: runQualityChecks(state) });
   }));
 
   app.get("/api/projects/:id", wrap((req, res) => {
@@ -50,6 +73,7 @@ export function registerProjectRoutes(app, ctx) {
     const presets = { ...STYLE_PRESETS, ...(ctx.config.presets ?? {}) };
     res.json({
       presets: Object.fromEntries(Object.entries(presets).map(([k, v]) => [k, { label: v.label ?? k }])),
+      disclosures: DISCLOSURE_LABELS,
     });
   }));
 }

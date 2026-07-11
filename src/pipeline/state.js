@@ -46,7 +46,7 @@ export class ProjectStore {
     return join(this.workspaceDir, id);
   }
 
-  create({ name, mode = "blog", style = "info", topic = "" }) {
+  create({ name, mode = "blog", style = "info", topic = "", disclosure = "none" }) {
     const id = slugify(name || topic || "project");
     const dir = this.dirOf(id);
     mkdirSync(join(dir, "materials"), { recursive: true });
@@ -58,6 +58,8 @@ export class ProjectStore {
       mode, // "blog" | "insta"
       style,
       topic,
+      disclosure, // "none" | "self-paid" | "sponsored" | "loan" — 공정위 표시문구
+
       stage: "INTAKE",
       createdAt: now,
       updatedAt: now,

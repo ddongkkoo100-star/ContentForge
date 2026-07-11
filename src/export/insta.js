@@ -2,6 +2,7 @@
 // caption.txt / hashtags.txt(3단) / carousel/ / slides.md
 import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { instaDisclosure } from "./disclosure.js";
 
 /** 해시태그 3단 구성 — 20~30개 범위로 정돈하는 결정적 로직 */
 export function composeHashtags({ popular = [], mid = [], niche = [] }, { min = 20, max = 30 } = {}) {
@@ -25,12 +26,19 @@ export async function exportInstaPackage({ store, state, outputDir }) {
   mkdirSync(join(dir, "carousel"), { recursive: true });
   const files = [];
 
+  // 공정위 표시 — 광고/협찬은 캡션 첫 줄에 명시해야 한다
+  const { captionPrefix, leadHashtags } = instaDisclosure(state.disclosure);
+  const caption = captionPrefix ? `${captionPrefix}\n\n${draft.caption}` : draft.caption;
+
   // caption.txt
-  writeFileSync(join(dir, "caption.txt"), `${draft.caption}\n`);
+  writeFileSync(join(dir, "caption.txt"), `${caption}\n`);
   files.push("caption.txt");
 
-  // hashtags.txt — 3단 구성 주석 + 붙여넣기용 한 줄
-  const { tiers, total, underMin } = composeHashtags(draft.hashtags);
+  // hashtags.txt — 3단 구성 주석 + 붙여넣기용 한 줄 (표시 태그를 맨 앞에)
+  const { tiers, total, underMin } = composeHashtags({
+    ...draft.hashtags,
+    popular: [...leadHashtags, ...(draft.hashtags?.popular ?? [])],
+  });
   const hashtagsTxt = [
     `# 인기 (${tiers.popular.length})`,
     tiers.popular.map((t) => `#${t}`).join(" "),
