@@ -431,6 +431,9 @@ textarea { min-height: 220px; resize: vertical; line-height: 1.7; }
 .preview-blog h3 { font-size: 16px; margin: 14px 0 6px; }
 .preview-blog ul, .preview-blog ol { padding-left: 22px; margin: 8px 0; }
 .preview-blog blockquote { border-left: 3px solid var(--accent); padding: 4px 14px; color: var(--text-dim); margin: 10px 0; }
+.preview-blog table, .draft-body table { border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+.preview-blog th, .preview-blog td, .draft-body th, .draft-body td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; }
+.preview-blog th, .draft-body th { background: var(--surface-2); font-family: var(--font-mono); font-size: 12px; }
 .preview-scroll { max-height: 560px; overflow-y: auto; padding-right: 8px; }
 
 /* ── 다이얼로그 ─────────────────────────────────── */

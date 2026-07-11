@@ -408,7 +408,20 @@ function mdPreview(md) {
   const out = [];
   let list = null;
   const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
-  for (const line of lines) {
+  const isRow = (l) => /^\s*\|.+\|\s*$/.test(l ?? "");
+  const isSep = (l) => /^\s*\|[\s:|-]+\|\s*$/.test(l ?? "");
+  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (isRow(line) && isSep(lines[li + 1])) {
+      close();
+      out.push(`<table class="md-table"><tr>${cells(line).map((c) => `<th>${c}</th>`).join("")}</tr>`);
+      li += 2;
+      while (li < lines.length && isRow(lines[li])) { out.push(`<tr>${cells(lines[li]).map((c) => `<td>${c}</td>`).join("")}</tr>`); li++; }
+      li--;
+      out.push("</table>");
+      continue;
+    }
     const h = line.match(/^(#{1,4})\s+(.+)$/);
     if (h) { close(); const lv = Math.min(Math.max(h[1].length, 2), 3); out.push(`<h${lv}>${h[2]}</h${lv}>`); continue; }
     const ul = line.match(/^\s*[-*]\s+(.+)$/);

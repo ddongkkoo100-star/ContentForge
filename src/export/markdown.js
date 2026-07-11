@@ -12,6 +12,10 @@ function inline(s) {
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>');
 }
 
+const isTableRow = (line) => /^\s*\|.+\|\s*$/.test(line);
+const isTableSep = (line) => /^\s*\|[\s:|-]+\|\s*$/.test(line);
+const splitCells = (line) => line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+
 export function mdToHtml(md = "") {
   const lines = md.split("\n");
   const out = [];
@@ -22,8 +26,23 @@ export function mdToHtml(md = "") {
       list = null;
     }
   };
-  for (const raw of lines) {
+  for (let li = 0; li < lines.length; li++) {
+    const raw = lines[li];
     const line = raw.trimEnd();
+    // 표: 헤더 | 구분선 | 데이터 행들 (상품리뷰 스펙 표 등)
+    if (isTableRow(line) && isTableSep(lines[li + 1] ?? "")) {
+      closeList();
+      out.push("<table border=\"1\">");
+      out.push(`<tr>${splitCells(line).map((c) => `<th>${inline(c)}</th>`).join("")}</tr>`);
+      li += 2;
+      while (li < lines.length && isTableRow(lines[li])) {
+        out.push(`<tr>${splitCells(lines[li]).map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`);
+        li++;
+      }
+      li--; // for 루프 증가 보정
+      out.push("</table>");
+      continue;
+    }
     const h = line.match(/^(#{1,4})\s+(.+)$/);
     if (h) {
       closeList();

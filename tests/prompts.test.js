@@ -43,6 +43,14 @@ test("draft 프롬프트는 모드에 따라 task와 출처 지시가 달라진�
   assert.doesNotMatch(insta.prompt, /참고자료.*섹션/);
 });
 
+test("product-review 프리셋은 상품 특화 지시를 포함", () => {
+  const p = resolvePreset("product-review");
+  assert.equal(p.label, "상품 리뷰");
+  for (const kw of ["내돈내산", "스펙", "별점", "재구매", "비추천"]) {
+    assert.match(p.prompt, new RegExp(kw), `${kw} 지시 누락`);
+  }
+});
+
 test("resolvePreset은 config 오버라이드를 반영하고 모르는 키는 거부", () => {
   const custom = resolvePreset("my-style", { "my-style": { label: "커스텀", prompt: "톤" } });
   assert.equal(custom.label, "커스텀");

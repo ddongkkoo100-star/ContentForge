@@ -117,6 +117,12 @@ test("mock 모드 블로그 풀 라운드트립 + 승인 게이트", async (t) =
   const postHtml = readFileSync(join(outDir, "post.html"), "utf-8");
   assert.match(postHtml, /<h2>/);
   assert.doesNotMatch(postHtml, /<script|<style|class=/); // 단순 태그만
+
+  // 마크다운 표 → <table> 변환 (상품리뷰 스펙 표)
+  const { mdToHtml } = await import("../src/export/markdown.js");
+  const tableHtml = mdToHtml("| 항목 | 내용 |\n| --- | --- |\n| 가격 | 1,000원 |\n\n일반 문단");
+  assert.match(tableHtml, /<table[^>]*>[\s\S]*<th>항목<\/th>[\s\S]*<td>1,000원<\/td>[\s\S]*<\/table>/);
+  assert.match(tableHtml, /<p>일반 문단<\/p>/);
   const imageMap = readFileSync(join(outDir, "image-map.md"), "utf-8");
   assert.match(imageMap, /\[IMG-01\]/);
   const metaMd = readFileSync(join(outDir, "meta.md"), "utf-8");
